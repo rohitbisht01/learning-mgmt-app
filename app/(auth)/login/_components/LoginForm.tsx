@@ -32,7 +32,7 @@ function LoginForm() {
           onSuccess: () => {
             toast.success("Signed with Github");
           },
-          onError: (error) => {
+          onError: () => {
             // toast.error(error.error.message);
             toast.error("Internal Server Error");
           },
@@ -43,7 +43,7 @@ function LoginForm() {
 
   function signInWithEmail() {
     startEmailTransaction(async () => {
-      const { data, error } = await authClient.emailOtp.sendVerificationOtp({
+      await authClient.emailOtp.sendVerificationOtp({
         email: email,
         type: "sign-in",
         fetchOptions: {

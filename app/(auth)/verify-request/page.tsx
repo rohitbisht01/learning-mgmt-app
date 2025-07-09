@@ -29,6 +29,11 @@ export default function VerifyRequest() {
 
   function verifyOtp() {
     startEmailTransition(async () => {
+      if (!email || !otp) {
+        toast.error("Email or OTP is missing");
+        return;
+      }
+
       await authClient.signIn.emailOtp({
         email: email,
         otp: otp,

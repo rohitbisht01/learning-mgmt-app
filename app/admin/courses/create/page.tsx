@@ -15,9 +15,9 @@ import {
   CourseSchemaType,
   courseStatus,
 } from "@/lib/zodSchema";
-import { ArrowLeft, PlusIcon, Sparkle } from "lucide-react";
+import { ArrowLeft, Loader2, PlusIcon, Sparkle } from "lucide-react";
 import Link from "next/link";
-import React from "react";
+import React, { useTransition } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import {
@@ -39,8 +39,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RichTextEditor } from "@/components/rich-text-editor/Editor";
+import Uploader from "@/components/file-uploader/uploader";
+import { tryCatch } from "@/hooks/try-catch";
+import { createCourse } from "./action";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export default function CourseCreationPage() {
+  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
+
   const form = useForm<CourseSchemaType>({
     resolver: zodResolver(courseSchema),
     defaultValues: {
@@ -57,8 +65,23 @@ export default function CourseCreationPage() {
     },
   });
 
-  function onSubmit(values: CourseSchemaType) {
-    console.log(values);
+  async function onSubmit(values: CourseSchemaType) {
+    startTransition(async () => {
+      const { data: result, error } = await tryCatch(createCourse(values));
+
+      if (error) {
+        toast.error("An unexpected error occurred. Please try again");
+        return;
+      }
+
+      if (result.status === "success") {
+        toast.success(result.message);
+        form.reset();
+        router.push("/admin/courses");
+      } else if (result.status === "error") {
+        toast.error(result.message);
+      }
+    });
   }
 
   return (
@@ -155,11 +178,6 @@ export default function CourseCreationPage() {
                   <FormItem className="flex-1">
                     <FormLabel>Description</FormLabel>
                     <FormControl>
-                      {/* <Textarea
-                        placeholder="Description"
-                        className="min-h-[120px]"
-                        {...field}
-                      /> */}
                       <RichTextEditor field={field} />
                     </FormControl>
                     <FormMessage />
@@ -174,7 +192,7 @@ export default function CourseCreationPage() {
                   <FormItem className="flex-1">
                     <FormLabel>Thumbnail Image</FormLabel>
                     <FormControl>
-                      <Input placeholder="Thumbnail url" {...field} />
+                      <Uploader onChange={field.onChange} value={field.value} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -305,8 +323,16 @@ export default function CourseCreationPage() {
                 )}
               />
 
-              <Button type="submit">
-                Create Course <PlusIcon className="size-4" />
+              <Button type="submit" disabled={isPending}>
+                {isPending ? (
+                  <>
+                    Creating... <Loader2 className="size-4 animate-spin" />{" "}
+                  </>
+                ) : (
+                  <>
+                    Create Course <PlusIcon className="size-4" />
+                  </>
+                )}
               </Button>
             </form>
           </Form>
